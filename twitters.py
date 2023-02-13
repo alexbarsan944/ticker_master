@@ -1,4 +1,5 @@
 import string
+import re
 
 import nltk
 import requests
@@ -28,7 +29,7 @@ def word_tokenize(text, language="english", preserve_line=False):
 
     return set(lst)
 
-
+all_handles = []
 def create_map():
     URL = 'https://api.coinmarketcap.com/data-api/v3/cryptocurrency/listing?start=1&limit=2000&sortBy=market_cap' \
           '&sortType=desc&convert=USD&cryptoType=all&tagType=all&audited=false '
@@ -40,6 +41,8 @@ def create_map():
     with open('twitters.txt') as f:
         lst = (list(eval(f.read())))
 
+    for twitter in lst:
+        all_handles.append(twitter['screen_name'])
     for twitter in lst:
         for coin in twitter['coins']:
             try:
@@ -60,6 +63,7 @@ mapper = create_map()
 
 def extract(text):
     def get_keys(val):
+        val = val.lower()
         lst = set()
         for ticker in mapper.keys():
             if val in mapper[ticker]:
@@ -70,20 +74,27 @@ def extract(text):
 
     text = text.lower()
     coins = set()
+    x = text.split(": ")
+    if x:
+        if x[0] in mapper.keys():
+            print(x[0])
+            coins.add(x[0])
+        else:
+            for reference_list in mapper.values():
+                if x[0] in reference_list:
+                    coins.update(get_keys(x[0]))
+    if len(coins):
+        return set(coins)
     lst = word_tokenize(text)
     for idx, word in enumerate(lst):
         if len(word) >= 2:
             if word in mapper.keys():
                 coins.add(word)
-                # print(word, 'here')
             else:
                 for reference_list in mapper.values():
                     if word in reference_list:
                         coins.update(get_keys(word))
                         pass
-        if len(coins):
-            return set(coins)
-        return []
-
-
-
+    if len(coins):
+        return set(coins)
+    return []
